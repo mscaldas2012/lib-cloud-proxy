@@ -1,0 +1,11 @@
+micronaut:
+  application:
+    name: lib-cloud-proxy
+
+
+cloud_environment: AWS
+
+aws:
+    bucket: test
+    region: us-eat-1
+
