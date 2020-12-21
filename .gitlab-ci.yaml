@@ -1,0 +1,17 @@
+image: maven:3-openjdk-11
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  RELEASE_VERSION: 1.0.0
+
+stages:
+  - build
+  - test
+  - deploy-nexus
+  - tagrepo
+
+include:
+  - project: biblioteca/ci_cd-templates
+    file: .gitlab-ci-java-gradle.yml
+    ref: release-1.0.0
