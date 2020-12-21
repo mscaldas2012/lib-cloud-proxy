@@ -14,4 +14,4 @@ stages:
 include:
   - project: biblioteca/ci_cd-templates
     file: .gitlab-ci-java-gradle.yml
-    ref: release-1.0.0
+    ref: release-1.0.1
