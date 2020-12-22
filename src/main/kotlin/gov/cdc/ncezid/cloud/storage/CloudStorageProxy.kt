@@ -39,35 +39,36 @@ open class CloudStorageProxy(@Property(name= "cloud_environment") val cloudEnv: 
         }
     }
 
-    override fun list(folder: String): List<String> {
-        return storage.list(folder)
+    override fun list(bucket: String, maxNumber: Int, prefix: String?): List<String> {
+        return storage.list(bucket, maxNumber, prefix)
     }
 
-    override fun listFolders(): List<String> {
-        return storage.listFolders()
+    override fun listFolders(bucket: String): List<String> {
+        return storage.listFolders(bucket)
     }
 
-    override fun getFileContent(objectKey: String): String {
-        return storage.getFileContent(objectKey)
+    override fun getFileContent(bucket: String, fileName: String): String {
+        return storage.getFileContent(bucket, fileName)
     }
 
-    override fun getFileContentAsInputStream(objectKey: String): InputStream {
-        return storage.getFileContentAsInputStream(objectKey)
+    override fun getFileContentAsInputStream(bucket: String, fileName: String): InputStream {
+        return storage.getFileContentAsInputStream(bucket, fileName)
     }
 
-    override fun getMetadata(objectKey: String): Map<String, String> {
-        return storage.getMetadata(objectKey)
+    override fun getMetadata(bucket: String, fileName: String): Map<String, String> {
+        return storage.getMetadata(bucket, fileName)
     }
 
-    override fun saveFile(objectKey: String, metadata: Map<String, String>, message: String) {
-        return storage.saveFile(objectKey, metadata, message)
+    override fun saveFile(bucket: String, fileName: String, content: String, metadata: Map<String, String>?, contentType: String) {
+        return storage.saveFile(bucket, fileName, content, metadata, contentType)
     }
 
-    override fun saveFile(objectKey: String, message: String) {
-        return storage.saveFile(objectKey, message)
+    override fun saveFile(bucket: String, fileName: String, content: InputStream, size: Long, metadata: Map<String, String>?, contentType: String) {
+        return storage.saveFile(bucket, fileName, content, size, metadata, contentType)
     }
 
-    override fun deleteFile(key: String): Int {
-        return storage.deleteFile(key)
+    override fun deleteFile(bucket: String, fileName: String): Int {
+        return storage.deleteFile(bucket, fileName)
     }
+
 }

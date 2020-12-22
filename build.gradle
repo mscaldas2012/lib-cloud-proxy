@@ -6,7 +6,7 @@ plugins {
     id 'jacoco'
 }
 
-version "1.0.0-SNAPSHOT"
+version "1.1.0-SNAPSHOT"
 group "gov.cdc.ncezid"
 
 apply plugin: 'maven'
@@ -41,6 +41,10 @@ dependencies {
     kapt(platform("io.micronaut:micronaut-bom:$micronautVersion"))
     kapt("io.micronaut:micronaut-inject-java")
     kapt("io.micronaut:micronaut-validation")
+
+    annotationProcessor "io.micronaut:micronaut-inject-java"
+    annotationProcessor "io.micronaut:micronaut-validation"
+
     implementation(platform("io.micronaut:micronaut-bom:$micronautVersion"))
     implementation("io.micronaut:micronaut-inject")
     implementation("io.micronaut:micronaut-validation")
@@ -104,14 +108,14 @@ compileTestKotlin {
         javaParameters = true
     }
 }
-kapt {
-    arguments {
-        arg("micronaut.processing.incremental", true)
-        arg("micronaut.processing.annotations", "lib.cloud.proxy.*")
-        arg("micronaut.processing.group", "lib.cloud.proxy")
-        arg("micronaut.processing.module", "libCloudProxy")
-    }
-}
+//kapt {
+//    arguments {
+//        arg("micronaut.processing.incremental", true)
+//        arg("micronaut.processing.annotations", "lib.cloud.proxy.*")
+//        arg("micronaut.processing.group", "lib.cloud.proxy")
+//        arg("micronaut.processing.module", "libCloudProxy")
+//    }
+//}
 
 //shadowJar {
 //    mergeServiceFiles()
