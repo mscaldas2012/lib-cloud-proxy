@@ -16,17 +16,26 @@ It Implements support for both AWS and Aure for:
 In order to use this library, you need to add the following properties 
 to your application.yaml. 
 
+```
 - cloud_environemnt: [AWS|AZURE] 
-  
+```  
+
 -Tells which cloud components to load.
 
 if usign AWS, you need the following properties:
 
 * for Storage Services:
+
+```
   - aws.region
   - aws.bucket
+```
+
 
 if using Azure, 
 * for Storage Services:
+
+```
   - azure.blob_connectStr
   - azure.blob_container
+```
