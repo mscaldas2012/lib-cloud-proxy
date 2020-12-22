@@ -1,7 +1,0 @@
-gov.cdc.ncezid.cloud.storage.$$CloudStorageProxyDefinition$InterceptedDefinitionClass
-gov.cdc.ncezid.cloud.azure.$BlobProxyDefinitionClass
-gov.cdc.ncezid.cloud.azure.$AzureConfigDefinitionClass
-gov.cdc.ncezid.cloud.storage.$CloudStorageProxyDefinitionClass
-gov.cdc.ncezid.cloud.aws.$S3ProxyDefinitionClass
-gov.cdc.ncezid.cloud.aws.$AWSConfigDefinitionClass
-gov.cdc.ncezid.cloud.storage.$CloudStorageProxy$ApplicationEventListener$registerHook1$InterceptedDefinitionClass
