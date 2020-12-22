@@ -122,7 +122,7 @@ class S3Proxy(val awsconfig: AWSConfig) : CloudStorage {
 
     override fun listFolders(bucket: String ): List<String> {
         val objects = list(bucket, 100)
-        return objects.map { it.substring(0, it.indexOf("/")) }.distinctBy { it }
+        return objects.map { it.substring(0, Math.max(it.indexOf("/"), 0)) }.filter{it != ""}.distinctBy { it }
     }
 
     override fun deleteFile(bucket: String, fileName: String): Int {

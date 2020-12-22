@@ -6,6 +6,6 @@ micronaut:
 cloud_environment: AWS
 
 aws:
-    bucket: test
-    region: us-eat-1
+    bucket: cf-daart-hl7-dropbucket-dev
+    region: us-east-1
 

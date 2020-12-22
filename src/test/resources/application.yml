@@ -6,5 +6,5 @@ micronaut:
 cloud_environment: AWS
 aws:
     bucket: test
-    region: us-eat-1
+    region: us-east-1
 
