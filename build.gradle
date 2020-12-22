@@ -61,7 +61,7 @@ dependencies {
 //    compile "io.micronaut:micronaut-runtime-groovy"
 //    compileOnly "io.micronaut:micronaut-inject-groovy"
     testImplementation("io.micronaut.test:micronaut-test-junit5:{junitVersion}")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:{junitVersion}")
+//    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:{junitVersion}")
 }
 
 test.classpath += configurations.developmentOnly

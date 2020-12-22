@@ -24,6 +24,10 @@ open class CloudStorageProxy(@Property(name= "cloud_environment") val cloudEnv: 
     @EventListener
     open fun registerHook(event: ServiceReadyEvent) {
 //    init {
+        setupStorage()
+    }
+
+    fun setupStorage() {
         logger.info("Deploying on Cloud  $cloudEnv")
         val cloudEnum = SUPPORTED_CLOUDS.valueOf(cloudEnv)
         ApplicationContext.run().use { context ->

@@ -11,7 +11,7 @@
   "createdBy": {
     "gradle": {
       "version": "6.7",
-      "buildId": "4nzatposnbbklfwcdyfq77ztxi"
+      "buildId": "zqbevpijuzf3zadtiqxw6myuey"
     }
   },
   "variants": [
@@ -30,11 +30,11 @@
         {
           "name": "lib-cloud-proxy-1.0.0-SNAPSHOT.jar",
           "url": "lib-cloud-proxy-1.0.0-SNAPSHOT.jar",
-          "size": 50349,
-          "sha512": "bf73a82d3ba2608de4cf88e1eaa6e8abec2cc0f2827614067486cdf76b70ea81ec7f1a5b1de0a2627ffb26f17898f40fc8691d99dcb1a954a055511e9d5ee9e5",
-          "sha256": "4635528e14147221fbb5de09fd8a79b8ae712c14bc200537115cd14b45cc136c",
-          "sha1": "e95a75d45b0e96e690a6f7016dda5fce60072f33",
-          "md5": "7a81a526e1177dc2fed53bd862407df1"
+          "size": 50339,
+          "sha512": "4c7fa8671733d1984ed7979c1bdd0bd5355a1be16f127a7552193274c39fbf5618f609c1cc5db5ffd298f3784ea2c013d57909cc383bf8a4e4b7dff4eb13a960",
+          "sha256": "782a7c4d6e9862b16d058d2dae4ec9d7e93be4d7cd95adcc277ffed5476ed207",
+          "sha1": "b24c9a8139464dce42166f3c0b04e4969772ff0a",
+          "md5": "69312b5915099e69c9579eb0bc2a22c3"
         }
       ]
     },
@@ -107,14 +107,14 @@
           "group": "org.jetbrains.kotlin",
           "module": "kotlin-stdlib",
           "version": {
-            "requires": "1.4.20"
+            "requires": "1.4.21"
           }
         },
         {
           "group": "org.jetbrains.kotlin",
           "module": "kotlin-reflect",
           "version": {
-            "requires": "1.4.20"
+            "requires": "1.4.21"
           }
         },
         {
@@ -141,11 +141,11 @@
         {
           "name": "lib-cloud-proxy-1.0.0-SNAPSHOT.jar",
           "url": "lib-cloud-proxy-1.0.0-SNAPSHOT.jar",
-          "size": 50349,
-          "sha512": "bf73a82d3ba2608de4cf88e1eaa6e8abec2cc0f2827614067486cdf76b70ea81ec7f1a5b1de0a2627ffb26f17898f40fc8691d99dcb1a954a055511e9d5ee9e5",
-          "sha256": "4635528e14147221fbb5de09fd8a79b8ae712c14bc200537115cd14b45cc136c",
-          "sha1": "e95a75d45b0e96e690a6f7016dda5fce60072f33",
-          "md5": "7a81a526e1177dc2fed53bd862407df1"
+          "size": 50339,
+          "sha512": "4c7fa8671733d1984ed7979c1bdd0bd5355a1be16f127a7552193274c39fbf5618f609c1cc5db5ffd298f3784ea2c013d57909cc383bf8a4e4b7dff4eb13a960",
+          "sha256": "782a7c4d6e9862b16d058d2dae4ec9d7e93be4d7cd95adcc277ffed5476ed207",
+          "sha1": "b24c9a8139464dce42166f3c0b04e4969772ff0a",
+          "md5": "69312b5915099e69c9579eb0bc2a22c3"
         }
       ]
     }
