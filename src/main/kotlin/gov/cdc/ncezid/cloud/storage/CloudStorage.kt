@@ -10,15 +10,24 @@ import java.io.InputStream
  * @Author Marcelo Caldas mcq1@cdc.gov
  */
 interface CloudStorage {
-    fun list(bucket: String, maxNumber:Int, prefix: String? = null): List<String>
-    fun listFolders(bucket: String ): List<String>
+    fun list(bucket: String, maxNumber: Int, prefix: String? = null): List<String>
+    fun list(maxNumber: Int, prefix: String? = null): List<String>
+    fun listFolders(bucket: String): List<String>
+    fun listFolders(): List<String>
     fun getFileContent(bucket: String, fileName: String): String
+    fun getFileContent(fileName: String): String
     fun getFileContentAsInputStream(bucket: String, fileName: String): InputStream
+    fun getFileContentAsInputStream(fileName: String): InputStream
     fun getMetadata(bucket: String, fileName: String): Map<String, String>
+    fun getMetadata(fileName: String): Map<String, String>
 
     fun saveFile(bucket: String, fileName: String, content:String, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
     fun saveFile(bucket: String, fileName: String, content:InputStream, size: Long, metadata: Map<String, String>?, contentType: String = MediaType.TEXT_PLAIN,)
+    fun saveFile(fileName: String, content:String, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
+    fun saveFile(fileName: String, content:InputStream, size: Long, metadata: Map<String, String>?, contentType: String = MediaType.TEXT_PLAIN,)
     fun deleteFile(bucket:String, fileName: String): Int
+    fun deleteFile(fileName: String): Int
 
+    fun healthCheck(): String
 }
 

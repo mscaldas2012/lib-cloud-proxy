@@ -1,0 +1,309 @@
+package gov.cdc.ncezid.cloud.storage.aws
+
+import gov.cdc.ncezid.cloud.AWSConfig
+import gov.cdc.ncezid.cloud.storage.CloudStorage
+import gov.cdc.ncezid.cloud.util.withMetrics
+import io.micrometer.core.instrument.MeterRegistry
+import io.micronaut.context.annotation.Requires
+import io.micronaut.http.MediaType
+import org.slf4j.LoggerFactory
+import software.amazon.awssdk.core.sync.RequestBody
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.*
+import java.io.*
+import java.time.Duration
+import java.util.*
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import javax.inject.Singleton
+
+private const val FILE_5MB = (5 * 1024 * 1024).toLong()
+
+@Singleton
+@Requires(property = "aws.region")
+class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: MeterRegistry? = null) : CloudStorage {
+    private val logger = LoggerFactory.getLogger(S3Proxy::class.java.name)
+
+    init {
+        logger.info("AUDIT- Initializing AWS S3Proxy with config: {}", awsConfig)
+    }
+
+    private val s3Client = S3Client.builder().overrideConfiguration {
+        it.apiCallTimeout(Duration.ofSeconds(awsConfig.s3.apiCallTimeoutSeconds))
+            .apiCallAttemptTimeout(Duration.ofSeconds(awsConfig.s3.apiCallAttemptTimeoutSeconds))
+    }.region(Region.of(awsConfig.region)).build()
+
+
+    @Throws
+    override fun getFileContent(bucket: String, fileName: String): String =
+        meterRegistry.withMetrics("s3.getFileContent") {
+            logger.debug("Getting fileContent for fileName: {} in bucket: {}", fileName, bucket)
+            runCatching {
+                try {
+                    s3Client.getObject { it.bucket(bucket).key(fileName) }.bufferedReader().use { it.readText() }
+                } catch (e: NoSuchKeyException) {
+                    getZipContent(bucket, fileName)
+                }
+            }.onFailure {
+                logger.error("Failed to get fileContent for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+            }.getOrThrow()
+        }
+
+    override fun getFileContent(fileName: String): String = getFileContent(awsConfig.s3.bucket, fileName)
+
+    override fun getFileContentAsInputStream(bucket: String, fileName: String): InputStream =
+        meterRegistry.withMetrics("s3.getFileContentAsInputStream") {
+            logger.debug("Getting fileContent for fileName: {} in bucket: {}", fileName, bucket)
+
+            runCatching {
+                ByteArrayInputStream(s3Client.getObject { it.bucket(bucket).key(fileName) }.readAllBytes())
+            }.onFailure {
+                logger.error("Failed to get fileContent (as InputStream) for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+            }.getOrThrow()
+        }
+
+    override fun getFileContentAsInputStream(fileName: String): InputStream =
+        getFileContentAsInputStream(awsConfig.s3.bucket, fileName)
+
+    @Throws
+    override fun getMetadata(bucket: String, fileName: String): Map<String, String> =
+        meterRegistry.withMetrics("s3.getMetadata") {
+            logger.debug("Getting metaData for fileName: {} in bucket: {}", fileName, bucket)
+
+            runCatching {
+                s3Client.headObject { it.bucket(bucket).key(fileName) }.let {
+                    mapOf("last_modified" to it.lastModified().toString()).plus(it.metadata())
+                }
+            }.onFailure {
+                logger.error("Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+            }.getOrThrow()
+        }
+
+    override fun getMetadata(fileName: String): Map<String, String> = getMetadata(awsConfig.s3.bucket, fileName)
+
+    override fun saveFile(
+        bucket: String,
+        fileName: String,
+        content: String,
+        metadata: Map<String, String>?,
+        contentType: String
+    ): Unit = meterRegistry.withMetrics("s3.saveFile") {
+        logger.debug(
+            "Saving File: {} to bucket: {}, with contentType: {} and MetaData: {} ",
+            fileName, bucket, contentType, metadata
+        )
+
+        runCatching {
+            s3Client.putObject({ it.key(fileName)
+                    .contentType(contentType)
+                    .bucket(bucket)
+                    .metadata(metadata)
+            }, RequestBody.fromString(content)).also {
+                logger.info("\tfile stored to S3 response: $it")
+            }
+        }.onFailure {
+            logger.error("Failed to Save File for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+        }.getOrThrow()
+    }
+
+    override fun saveFile(
+        bucket: String,
+        fileName: String,
+        content: InputStream,
+        size: Long,
+        metadata: Map<String, String>?,
+        contentType: String
+    ): Unit = meterRegistry.withMetrics("s3.saveFile.inputstream") {
+        runCatching {
+            if (size > FILE_5MB)
+                uploadMultipartFile(bucket, content, fileName, size, metadata ?: mapOf())
+            else uploadSinglePart(bucket, fileName, content, size, contentType, metadata)
+        }.onFailure {
+            logger.error(
+                "Failed to Save File (from InputStream) for fileName: {} in bucket: {}. Exception: {}",
+                fileName, bucket, it
+            )
+        }.getOrThrow()
+    }
+
+    override fun saveFile(fileName: String, content: String, metadata: Map<String, String>?, contentType: String) =
+        saveFile(awsConfig.s3.bucket, fileName, content, metadata, contentType)
+
+    override fun saveFile(
+        fileName: String,
+        content: InputStream,
+        size: Long,
+        metadata: Map<String, String>?,
+        contentType: String
+    ): Unit = saveFile(awsConfig.s3.bucket, fileName, content, size, metadata, contentType)
+
+    //Retrieves the first X number of files on a folder (if prefix is provided) or root if prefix is null:
+    override fun list(bucket: String, maxNumber: Int, prefix: String?): List<String> =
+        meterRegistry.withMetrics("s3.list") {
+            logger.debug("Listing max ({}) objects for bucket: {} with prefix {}", maxNumber, bucket, prefix)
+
+            runCatching {
+                s3Client.listObjects { l -> l.bucket(bucket).maxKeys(maxNumber).prefix(prefix) }.let { res ->
+                    logger.debug("Response has contents: {}", res.hasContents())
+                    res.contents().map { it.key() }
+                }
+            }.onFailure {
+                logger.error("Failed to List objects for bucket: {} with prefix {}. Exception: {}", bucket, prefix, it)
+            }.getOrThrow()
+        }
+
+    /**
+     * This was introduced to be able to provide a 'silent' call to the aws s3 api
+     */
+    override fun healthCheck(): String = meterRegistry.withMetrics("s3.healthcheck") {
+        s3Client.listObjects { req -> req.bucket(awsConfig.s3.bucket).maxKeys(1) }.responseMetadata().requestId()
+    }
+
+    override fun list(maxNumber: Int, prefix: String?): List<String> = list(awsConfig.s3.bucket, maxNumber, prefix)
+
+    override fun listFolders(bucket: String): List<String> = meterRegistry.withMetrics("s3.listFolders") {
+        runCatching {
+            with(list(bucket, 100)) {
+                logger.debug("List: {}", this)
+                mapNotNull { it.takeIf { it.indexOf("/") >= 0 } }
+                    .filter { it != "" }
+                    .distinctBy { it }
+            }
+        }.onFailure {
+            logger.error("Failed to List Folders for bucket: {}. Exception: {}", bucket, it)
+        }.getOrThrow()
+    }
+
+    override fun listFolders(): List<String> = listFolders(awsConfig.s3.bucket)
+
+    override fun deleteFile(bucket: String, fileName: String): Int =
+        meterRegistry.withMetrics("s3.deleteFile") {
+            runCatching {
+                val keyAsList = listOf(ObjectIdentifier.builder().key(fileName).build())
+
+                s3Client.deleteObjects { req ->
+                    req.bucket(bucket).delete { it.objects(keyAsList) }
+                }.deleted().size
+            }.onFailure {
+                logger.error("Failed to Delete file: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+            }.getOrThrow()
+        }
+
+    override fun deleteFile(fileName: String): Int = deleteFile(awsConfig.s3.bucket, fileName)
+
+    private fun uploadSinglePart(
+        bucket: String,
+        fileName: String,
+        content: InputStream,
+        contentLength: Long,
+        contentType: String = MediaType.TEXT_PLAIN,
+        metadata: Map<String, String>? = null
+    ) {
+        logger.debug(
+            "Uploading singlepart " +
+                    "fileName: $fileName, " +
+                    "bucket: $bucket, " +
+                    "contentLength: $contentLength, " +
+                    "contentType: $contentType"
+        )
+
+        s3Client.putObject({ pob ->
+            pob.key(fileName)
+                .contentType(contentType)
+                .bucket(bucket)
+                .metadata(metadata)
+        }, RequestBody.fromInputStream(content, contentLength))
+    }
+
+    //Multipart uploads:
+    private fun uploadMultipartFile(
+        bucket: String,
+        file: InputStream,
+        filename: String,
+        contentLength: Long,
+        metadata: Map<String, String>
+    ) {
+        logger.debug("Processing multipart bucket: $bucket, key: $filename.")
+        //Create multipart upload request and response
+        val uploadId: String = createMultipartUpload(filename, bucket, metadata)
+        //upload part by part
+        val completedPartList = uploadMultiParts(file, contentLength, bucket, filename, uploadId)
+        // merge all parts uploaded
+        completeMultiParts(completedPartList, bucket, filename, uploadId).also {
+            logger.debug("Uploaded Multipart file. Received eTag: {}", it)
+        }
+    }
+
+    private fun createMultipartUpload(key: String, bucket: String, metadata: Map<String, String>): String {
+        logger.debug("Creating MultipartUpload with key: {}, bucket: {}, metaData: {}", key, bucket, metadata)
+        return s3Client.createMultipartUpload { mur -> mur.key(key).bucket(bucket).metadata(metadata) }.uploadId()
+    }
+
+    @Throws(IOException::class)
+    private fun uploadMultiParts(
+        file: InputStream,
+        contentLength: Long,
+        bucket: String,
+        key: String,
+        uploadId: String,
+    ): List<CompletedPart> {
+        var partSize = FILE_5MB // Set part size to 5 MB.
+        var filePosition: Long = 0
+        val completedPartList: MutableList<CompletedPart> = ArrayList()
+        var i = 1
+        while (filePosition < contentLength) {
+            // last part could be less than 5 MB, adjust the part size as needed.
+            partSize = partSize.coerceAtMost(contentLength - filePosition)
+            //s3Client.upload
+            val eTag = s3Client.uploadPart({ upb ->
+                upb.bucket(bucket).key(key).uploadId(uploadId).partNumber(i).contentLength(partSize)
+            }, RequestBody.fromInputStream(file, contentLength)).eTag()
+
+            logger.debug("part# $i , eTag: $eTag , fileposition: ${filePosition / (1024 * 1024)}MB, partsize: ${partSize / (1024 * 1024)}MB, contentLength: $contentLength.")
+            val completedPart = CompletedPart.builder().partNumber(i).eTag(eTag).build()
+            completedPartList.add(completedPart)
+            filePosition += partSize
+            i++
+        }
+        return completedPartList
+    }
+
+    private fun completeMultiParts(
+        completedPartList: List<CompletedPart>,
+        bucket: String,
+        key: String,
+        uploadId: String,
+    ): String {
+        logger.debug("Completing MultipartUpload with key: {}, bucket: {}, uploadId: {}", key, bucket, uploadId)
+        return s3Client.completeMultipartUpload { cmurb ->
+            cmurb.bucket(bucket)
+                .key(key)
+                .uploadId(uploadId)
+                .multipartUpload { cmub -> cmub.parts(completedPartList) }
+        }.eTag().replace("\"".toRegex(), "")
+    }
+
+    private fun getZipContent(bucket: String, config: String): String {
+        logger.debug("Getting Zip Content for bucket: {}", bucket)
+        val req = GetObjectRequest.builder().bucket(bucket).key("${config}.zip").build()
+        val res = s3Client.getObject(req)
+        val s3Content = res.readAllBytes()
+
+        val tempFile = File.createTempFile(UUID.randomUUID().toString(), ".tmp")
+        tempFile.writeBytes(s3Content)
+        try {
+            ZipFile(tempFile).use { zf ->
+                logger.debug(String.format("Inspecting contents of: %s\n", zf.name))
+                val zipEntries = zf.entries()
+                val iterator: Iterator<*> = zipEntries.asIterator() //.forEachRemaining(entry -> {
+                //while (iterator.hasNext()) {
+                val entry = iterator.next() as ZipEntry
+                return zf.getInputStream(entry).bufferedReader().use(BufferedReader::readText)
+                //}
+            }
+        } finally {
+            tempFile.delete()
+        }
+    }
+}

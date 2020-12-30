@@ -1,12 +1,13 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.4.20"
-    id "org.jetbrains.kotlin.kapt" version "1.4.20"
-    id "org.jetbrains.kotlin.plugin.allopen" version "1.4.20"
+    id "org.jetbrains.kotlin.jvm" version "${kotlinVersion}"
+    id "org.jetbrains.kotlin.kapt" version "${kotlinVersion}"
+    id "org.jetbrains.kotlin.plugin.allopen" version "${kotlinVersion}"
 //    id "groovy"
-    id 'jacoco'
+    id "jacoco"
+    id "maven-publish"
 }
 
-version "1.1.0"
+version "$revision"
 group "gov.cdc.ncezid"
 
 apply plugin: 'maven'
@@ -28,8 +29,7 @@ configurations {
 }
 
 dependencies {
-    implementation platform('software.amazon.awssdk:bom:2.15.35')
-//    implementation 'software.amazon.awssdk:s3'
+    implementation platform("software.amazon.awssdk:bom:$awsSDKVersion")
 
     implementation("io.micronaut.aws:micronaut-aws-sdk-v2")
     implementation "software.amazon.awssdk:s3"
@@ -48,12 +48,17 @@ dependencies {
     implementation(platform("io.micronaut:micronaut-bom:$micronautVersion"))
     implementation("io.micronaut:micronaut-inject")
     implementation("io.micronaut:micronaut-validation")
+    implementation("io.micronaut:micronaut-runtime")
+    implementation("io.micronaut:micronaut-management")
+    implementation("io.micronaut.micrometer:micronaut-micrometer-core")
+
     implementation("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
-    implementation("io.micronaut:micronaut-runtime")
+
     implementation("javax.annotation:javax.annotation-api")
     runtimeOnly("ch.qos.logback:logback-classic:1.2.3")
     runtimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
+
     kaptTest(enforcedPlatform("io.micronaut:micronaut-bom:$micronautVersion"))
     kaptTest("io.micronaut:micronaut-inject-java")
     testImplementation(enforcedPlatform("io.micronaut:micronaut-bom:$micronautVersion"))
