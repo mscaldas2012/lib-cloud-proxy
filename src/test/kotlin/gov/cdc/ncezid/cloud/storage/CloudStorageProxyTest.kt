@@ -1,6 +1,6 @@
 package gov.cdc.ncezid.cloud.storage
 
-import gov.cdc.ncezid.cloud.aws.S3Proxy
+import gov.cdc.ncezid.cloud.storage.aws.S3Proxy
 import io.micronaut.runtime.server.EmbeddedServer
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import org.junit.jupiter.api.Test
@@ -14,18 +14,17 @@ internal class CloudStorageProxyTest {
     @Inject
     lateinit var s3Proxy: S3Proxy
     @Inject
-    lateinit var proxy: CloudStorageProxy
+    lateinit var cloudStorage: CloudStorage
 
     @Test
     fun listFolders() {
 //        val configs = s3Proxy.listFolders("cf-daart-hl7-dropbucket-dev")
         val configs = s3Proxy.listFolders("cf-daart-nist-profiles-dev")
         configs.forEach { println(it)}
-        if (configs.size == 0) {
+        if (configs.isEmpty()) {
             println("NO FOLDERS FOUND ON THIS BUCKET!")
         }
-        proxy.setupStorage()
-        val configsProxy = proxy.listFolders("cf-daart-nist-profiles-dev")
+        val configsProxy = cloudStorage.listFolders("cf-daart-nist-profiles-dev")
         configsProxy.forEach { println(it)}
     }
 }
