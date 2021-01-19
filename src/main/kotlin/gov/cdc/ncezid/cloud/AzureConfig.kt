@@ -13,8 +13,8 @@ class AzureConfig {
     val blobHealth: HealthConfig = HealthConfig()
 
     inner class BlobConfig {
-        lateinit var container: String
-        lateinit var connectStr: String
+        var container: String? = null
+        var connectStr: String? = null
 
         override fun toString(): String {
             return "container='$container', connectStr='$connectStr', health=${blobHealth.enabled}"

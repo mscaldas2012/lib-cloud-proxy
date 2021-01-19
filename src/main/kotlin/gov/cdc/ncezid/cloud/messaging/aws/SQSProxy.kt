@@ -4,7 +4,7 @@ import gov.cdc.ncezid.cloud.AWSConfig
 import gov.cdc.ncezid.cloud.messaging.CloudMessage
 import gov.cdc.ncezid.cloud.messaging.CloudMessaging
 import gov.cdc.ncezid.cloud.util.stopTimer
-import gov.cdc.ncezid.cloud.util.timerName
+import gov.cdc.ncezid.cloud.util.validateFor
 import gov.cdc.ncezid.cloud.util.withMetrics
 import gov.cdc.ncezid.cloud.util.withMetricsTimer
 import io.micrometer.core.instrument.MeterRegistry
@@ -18,7 +18,7 @@ import javax.inject.Singleton
 
 
 @Singleton
-@Requires(property = "aws.region")
+@Requires(property = "aws.sqs")
 class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: MeterRegistry? = null) : CloudMessaging {
 
     private val logger = LoggerFactory.getLogger(SQSProxy::class.java.name)
@@ -29,7 +29,7 @@ class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: Mete
             .retryPolicy(RetryMode.STANDARD)
     }.region(Region.of(awsConfig.region)).build()
 
-    private val queueUrl = getQueueUrl()
+    private val queueUrl: String? = awsConfig.sqs.queueName?.let(::getQueueUrl)
 
     init {
         logger.info("AUDIT- Initializing AWS SQSProxy with config: {}", awsConfig)
@@ -54,7 +54,7 @@ class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: Mete
         }.getOrThrow()
     }
 
-    override fun getQueueUrl(): String = getQueueUrl(awsConfig.sqs.queueName)
+    override fun getQueueUrl(): String = awsConfig.sqs.queueName.validateFor("queueName") { getQueueUrl(it) }
 
     override fun getQueueUrl(queueName: String): String = meterRegistry.withMetrics("sqs.getQueueUrl") {
         runCatching {
@@ -67,7 +67,7 @@ class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: Mete
     }
 
 
-    override fun receiveMessage(): List<CloudMessage> = receiveMessage(queueUrl)
+    override fun receiveMessage(): List<CloudMessage> = queueUrl.validateFor("queueUrl") { receiveMessage(it) }
 
     override fun receiveMessage(queueNameOrUrl: String): List<CloudMessage> =
         meterRegistry.withMetricsTimer("sqs.receiveMessage.poll") { timer ->
@@ -86,7 +86,7 @@ class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: Mete
                     }.also {
                         // This forces a 'timed' execution for only polls that actually receive messages
                         if (it.isNotEmpty())
-                            meterRegistry?.stopTimer(timer, "sqs.receiveMessage".timerName())
+                            meterRegistry?.stopTimer(timer, "sqs.receiveMessage")
                     }
                 }
             }.onFailure {
@@ -125,6 +125,5 @@ class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: Mete
     override fun toString(): String {
         return "SQSProxy(sqsClient=$sqsClient)"
     }
-
 }
 

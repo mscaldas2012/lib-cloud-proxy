@@ -20,7 +20,7 @@ class AWSConfig {
     var sqsHealth: HealthConfig = HealthConfig()
 
     inner class S3Config {
-        lateinit var bucket: String
+        var bucket: String? = null
         var apiCallTimeoutSeconds: Long = 60
         var apiCallAttemptTimeoutSeconds: Long = 20
 
@@ -28,12 +28,12 @@ class AWSConfig {
             return "bucket='$bucket', " +
                     "apiCallTimeoutSeconds='$apiCallTimeoutSeconds', " +
                     "apiCallAttemptTimeoutSeconds='$apiCallAttemptTimeoutSeconds', " +
-                    "health=${sqsHealth.enabled}"
+                    "health=${s3Health.enabled}"
         }
     }
 
     inner class SQSConfig {
-        lateinit var queueName: String
+        var queueName: String? = null
         var apiCallTimeoutSeconds: Long = 60
         var apiCallAttemptTimeoutSeconds: Long = 20
         var maxNumberOfMessages: Int = 1
@@ -45,11 +45,11 @@ class AWSConfig {
                     "apiCallAttemptTimeoutSeconds='$apiCallAttemptTimeoutSeconds', " +
                     "maxNumberOfMessages='$maxNumberOfMessages', " +
                     "waitTimeSeconds='$waitTimeSeconds', " +
-                    "health=${s3Health.enabled}"
+                    "health=${sqsHealth.enabled}"
         }
     }
 
-    class HealthConfig {
+    inner class HealthConfig {
         var enabled: Boolean = false
     }
 

@@ -2,6 +2,7 @@ package gov.cdc.ncezid.cloud.storage.aws
 
 import gov.cdc.ncezid.cloud.AWSConfig
 import gov.cdc.ncezid.cloud.storage.CloudStorage
+import gov.cdc.ncezid.cloud.util.validateFor
 import gov.cdc.ncezid.cloud.util.withMetrics
 import io.micrometer.core.instrument.MeterRegistry
 import io.micronaut.context.annotation.Requires
@@ -10,8 +11,15 @@ import org.slf4j.LoggerFactory
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.s3.model.*
-import java.io.*
+import software.amazon.awssdk.services.s3.model.CompletedPart
+import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import java.time.Duration
 import java.util.*
 import java.util.zip.ZipEntry
@@ -21,7 +29,7 @@ import javax.inject.Singleton
 private const val FILE_5MB = (5 * 1024 * 1024).toLong()
 
 @Singleton
-@Requires(property = "aws.region")
+@Requires(property = "aws.s3")
 class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: MeterRegistry? = null) : CloudStorage {
     private val logger = LoggerFactory.getLogger(S3Proxy::class.java.name)
 
@@ -50,7 +58,9 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
             }.getOrThrow()
         }
 
-    override fun getFileContent(fileName: String): String = getFileContent(awsConfig.s3.bucket, fileName)
+    // TODO - should throw exception if bucket doesn't exist (and same for others)
+    override fun getFileContent(fileName: String): String =
+        awsConfig.s3.bucket.validateFor("s3.bucket") { getFileContent(it, fileName) }
 
     override fun getFileContentAsInputStream(bucket: String, fileName: String): InputStream =
         meterRegistry.withMetrics("s3.getFileContentAsInputStream") {
@@ -64,7 +74,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         }
 
     override fun getFileContentAsInputStream(fileName: String): InputStream =
-        getFileContentAsInputStream(awsConfig.s3.bucket, fileName)
+        awsConfig.s3.bucket.validateFor("s3.bucket") { getFileContentAsInputStream(it, fileName) }
 
     @Throws
     override fun getMetadata(bucket: String, fileName: String): Map<String, String> =
@@ -80,7 +90,8 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
             }.getOrThrow()
         }
 
-    override fun getMetadata(fileName: String): Map<String, String> = getMetadata(awsConfig.s3.bucket, fileName)
+    override fun getMetadata(fileName: String): Map<String, String> =
+        awsConfig.s3.bucket.validateFor("s3.bucket") { getMetadata(it, fileName) }
 
     override fun saveFile(
         bucket: String,
@@ -128,7 +139,8 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
     }
 
     override fun saveFile(fileName: String, content: String, metadata: Map<String, String>?, contentType: String) =
-        saveFile(awsConfig.s3.bucket, fileName, content, metadata, contentType)
+        awsConfig.s3.bucket.validateFor("s3.bucket") {saveFile(it, fileName, content, metadata, contentType)}
+
 
     override fun saveFile(
         fileName: String,
@@ -136,7 +148,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         size: Long,
         metadata: Map<String, String>?,
         contentType: String
-    ): Unit = saveFile(awsConfig.s3.bucket, fileName, content, size, metadata, contentType)
+    ): Unit = awsConfig.s3.bucket.validateFor("s3.bucket") {saveFile(it, fileName, content, size, metadata, contentType)}
 
     //Retrieves the first X number of files on a folder (if prefix is provided) or root if prefix is null:
     override fun list(bucket: String, maxNumber: Int, prefix: String?): List<String> =
@@ -157,10 +169,13 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
      * This was introduced to be able to provide a 'silent' call to the aws s3 api
      */
     override fun healthCheck(): String = meterRegistry.withMetrics("s3.healthcheck") {
-        s3Client.listObjects { req -> req.bucket(awsConfig.s3.bucket).maxKeys(1) }.responseMetadata().requestId()
+        awsConfig.s3.bucket.validateFor("s3.bucket") {
+            s3Client.listObjects { req -> req.bucket(it).maxKeys(1) }.responseMetadata().requestId()
+        }
     }
 
-    override fun list(maxNumber: Int, prefix: String?): List<String> = list(awsConfig.s3.bucket, maxNumber, prefix)
+    override fun list(maxNumber: Int, prefix: String?): List<String> =
+        awsConfig.s3.bucket.validateFor("s3.bucket") { list(it, maxNumber, prefix) }
 
     override fun listFolders(bucket: String): List<String> = meterRegistry.withMetrics("s3.listFolders") {
         runCatching {
@@ -175,7 +190,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         }.getOrThrow()
     }
 
-    override fun listFolders(): List<String> = listFolders(awsConfig.s3.bucket)
+    override fun listFolders(): List<String> = awsConfig.s3.bucket.validateFor("s3.bucket") { listFolders(it) }
 
     override fun deleteFile(bucket: String, fileName: String): Int =
         meterRegistry.withMetrics("s3.deleteFile") {
@@ -190,7 +205,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
             }.getOrThrow()
         }
 
-    override fun deleteFile(fileName: String): Int = deleteFile(awsConfig.s3.bucket, fileName)
+    override fun deleteFile(fileName: String): Int = awsConfig.s3.bucket.validateFor("s3.bucket") { deleteFile(it, fileName) }
 
     private fun uploadSinglePart(
         bucket: String,
