@@ -2,9 +2,8 @@ micronaut:
   application:
     name: lib-cloud-proxy
 
-
-cloud_environment: AWS
 aws:
+  region: us-east-1
+  s3:
     bucket: test
-    region: us-east-1
 
