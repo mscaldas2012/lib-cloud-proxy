@@ -18,8 +18,8 @@ interface CloudStorage {
     fun getFileContent(fileName: String): String
     fun getFileContentAsInputStream(bucket: String, fileName: String): InputStream
     fun getFileContentAsInputStream(fileName: String): InputStream
-    fun getMetadata(bucket: String, fileName: String): Map<String, String>
-    fun getMetadata(fileName: String): Map<String, String>
+    fun getMetadata(bucket: String, fileName: String, urlDecode: Boolean = true): Map<String, String>
+    fun getMetadata(fileName: String, urlDecode: Boolean = true): Map<String, String>
 
     fun saveFile(bucket: String, fileName: String, content:String, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
     fun saveFile(bucket: String, fileName: String, content:InputStream, size: Long, metadata: Map<String, String>?, contentType: String = MediaType.TEXT_PLAIN,)

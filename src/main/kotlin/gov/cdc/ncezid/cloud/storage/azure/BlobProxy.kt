@@ -5,6 +5,7 @@ import com.azure.storage.blob.BlobServiceClientBuilder
 import com.azure.storage.blob.models.BlobProperties
 import gov.cdc.ncezid.cloud.AzureConfig
 import gov.cdc.ncezid.cloud.storage.CloudStorage
+import gov.cdc.ncezid.cloud.util.decode
 import gov.cdc.ncezid.cloud.util.validateFor
 import gov.cdc.ncezid.cloud.util.withMetrics
 import io.micrometer.core.instrument.MeterRegistry
@@ -72,16 +73,23 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
     override fun getFileContentAsInputStream(fileName: String): InputStream =
         azureConfig.blob.container.validateFor("blob.container") { getFileContentAsInputStream(it, fileName) }
 
-    override fun getMetadata(container: String, fileName: String): Map<String, String> =
+    override fun getMetadata(container: String, fileName: String, urlDecode: Boolean): Map<String, String> =
         meterRegistry.withMetrics("blob.getMetadata") {
-            val blobProperties = getProperties(container, fileName)
-            val result = blobProperties.metadata as MutableMap<String, String>
-            result["last_modified"] = blobProperties.lastModified.toInstant().toString()
-            result
+            runCatching {
+                getProperties(container, fileName).let {
+                    mapOf("last_modified" to it.lastModified.toString()).plus(
+                        if (urlDecode) it.metadata.decode() else it.metadata
+                    )
+                }
+            }.onFailure {
+                logger.error(
+                    "Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, container, it
+                )
+            }.getOrThrow()
         }
 
-    override fun getMetadata(fileName: String): Map<String, String> =
-        azureConfig.blob.container.validateFor("blob.container") { getMetadata(it, fileName) }
+    override fun getMetadata(fileName: String, urlDecode: Boolean): Map<String, String> =
+        azureConfig.blob.container.validateFor("blob.container") { getMetadata(it, fileName, urlDecode) }
 
     override fun saveFile(
         container: String,

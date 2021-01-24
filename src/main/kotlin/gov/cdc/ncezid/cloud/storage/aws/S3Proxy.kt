@@ -2,6 +2,7 @@ package gov.cdc.ncezid.cloud.storage.aws
 
 import gov.cdc.ncezid.cloud.AWSConfig
 import gov.cdc.ncezid.cloud.storage.CloudStorage
+import gov.cdc.ncezid.cloud.util.decode
 import gov.cdc.ncezid.cloud.util.validateFor
 import gov.cdc.ncezid.cloud.util.withMetrics
 import io.micrometer.core.instrument.MeterRegistry
@@ -20,6 +21,8 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.net.URLDecoder
+import java.nio.charset.Charset
 import java.time.Duration
 import java.util.*
 import java.util.zip.ZipEntry
@@ -54,7 +57,12 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                     getZipContent(bucket, fileName)
                 }
             }.onFailure {
-                logger.error("Failed to get fileContent for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+                logger.error(
+                    "Failed to get fileContent for fileName: {} in bucket: {}. Exception: {}",
+                    fileName,
+                    bucket,
+                    it
+                )
             }.getOrThrow()
         }
 
@@ -69,7 +77,12 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
             runCatching {
                 ByteArrayInputStream(s3Client.getObject { it.bucket(bucket).key(fileName) }.readAllBytes())
             }.onFailure {
-                logger.error("Failed to get fileContent (as InputStream) for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+                logger.error(
+                    "Failed to get fileContent (as InputStream) for fileName: {} in bucket: {}. Exception: {}",
+                    fileName,
+                    bucket,
+                    it
+                )
             }.getOrThrow()
         }
 
@@ -77,21 +90,26 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         awsConfig.s3.bucket.validateFor("s3.bucket") { getFileContentAsInputStream(it, fileName) }
 
     @Throws
-    override fun getMetadata(bucket: String, fileName: String): Map<String, String> =
+    override fun getMetadata(bucket: String, fileName: String, urlDecode: Boolean): Map<String, String> =
         meterRegistry.withMetrics("s3.getMetadata") {
             logger.debug("Getting metaData for fileName: {} in bucket: {}", fileName, bucket)
 
             runCatching {
                 s3Client.headObject { it.bucket(bucket).key(fileName) }.let {
-                    mapOf("last_modified" to it.lastModified().toString()).plus(it.metadata())
+                    mapOf("last_modified" to it.lastModified().toString()).plus(
+                        if (urlDecode) it.metadata().decode() else it.metadata()
+                    )
                 }
             }.onFailure {
-                logger.error("Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+                logger.error(
+                    "Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it
+                )
             }.getOrThrow()
         }
 
-    override fun getMetadata(fileName: String): Map<String, String> =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { getMetadata(it, fileName) }
+
+    override fun getMetadata(fileName: String, urlDecode: Boolean): Map<String, String> =
+        awsConfig.s3.bucket.validateFor("s3.bucket") { getMetadata(it, fileName, urlDecode) }
 
     override fun saveFile(
         bucket: String,
@@ -106,7 +124,8 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         )
 
         runCatching {
-            s3Client.putObject({ it.key(fileName)
+            s3Client.putObject({
+                it.key(fileName)
                     .contentType(contentType)
                     .bucket(bucket)
                     .metadata(metadata)
@@ -139,7 +158,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
     }
 
     override fun saveFile(fileName: String, content: String, metadata: Map<String, String>?, contentType: String) =
-        awsConfig.s3.bucket.validateFor("s3.bucket") {saveFile(it, fileName, content, metadata, contentType)}
+        awsConfig.s3.bucket.validateFor("s3.bucket") { saveFile(it, fileName, content, metadata, contentType) }
 
 
     override fun saveFile(
@@ -148,7 +167,8 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         size: Long,
         metadata: Map<String, String>?,
         contentType: String
-    ): Unit = awsConfig.s3.bucket.validateFor("s3.bucket") {saveFile(it, fileName, content, size, metadata, contentType)}
+    ): Unit =
+        awsConfig.s3.bucket.validateFor("s3.bucket") { saveFile(it, fileName, content, size, metadata, contentType) }
 
     //Retrieves the first X number of files on a folder (if prefix is provided) or root if prefix is null:
     override fun list(bucket: String, maxNumber: Int, prefix: String?): List<String> =
@@ -205,7 +225,8 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
             }.getOrThrow()
         }
 
-    override fun deleteFile(fileName: String): Int = awsConfig.s3.bucket.validateFor("s3.bucket") { deleteFile(it, fileName) }
+    override fun deleteFile(fileName: String): Int =
+        awsConfig.s3.bucket.validateFor("s3.bucket") { deleteFile(it, fileName) }
 
     private fun uploadSinglePart(
         bucket: String,
@@ -217,10 +238,10 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
     ) {
         logger.debug(
             "Uploading singlepart " +
-                    "fileName: $fileName, " +
-                    "bucket: $bucket, " +
-                    "contentLength: $contentLength, " +
-                    "contentType: $contentType"
+            "fileName: $fileName, " +
+            "bucket: $bucket, " +
+            "contentLength: $contentLength, " +
+            "contentType: $contentType"
         )
 
         s3Client.putObject({ pob ->
