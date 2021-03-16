@@ -4,6 +4,8 @@ import com.azure.storage.blob.BlobServiceClient
 import com.azure.storage.blob.BlobServiceClientBuilder
 import com.azure.storage.blob.models.BlobProperties
 import gov.cdc.ncezid.cloud.AzureConfig
+import gov.cdc.ncezid.cloud.Providers
+import gov.cdc.ncezid.cloud.storage.CloudFile
 import gov.cdc.ncezid.cloud.storage.CloudStorage
 import gov.cdc.ncezid.cloud.util.decode
 import gov.cdc.ncezid.cloud.util.validateFor
@@ -17,6 +19,8 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.inject.Singleton
 
+private const val VAR_CONTAINER = "blob.container"
+
 @Singleton
 @Requires(property = "azure.blob")
 class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry: MeterRegistry? = null) : CloudStorage {
@@ -25,6 +29,8 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
     init {
         logger.info("Initializing BlobProxy with config: {}", azureConfig)
     }
+
+    override fun provider(): Providers = Providers.Azure
 
     private val blobServiceClient: BlobServiceClient = azureConfig.blob.connectStr.validateFor("blob.connectStr") {
         BlobServiceClientBuilder().connectionString(it).buildClient()
@@ -37,20 +43,22 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
         TODO("Not yet implemented")
     }
 
+    override fun getDefaultBucket(): String = azureConfig.blob.container ?: "N/A"
+
     override fun list(container: String, maxNumber: Int, prefix: String?): List<String> =
         meterRegistry.withMetrics("blob.list") {
             TODO("Not yet implemented")
         }
 
     override fun list(maxNumber: Int, prefix: String?): List<String> =
-        azureConfig.blob.container.validateFor("blob.container") { list(it, maxNumber, prefix) }
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) { list(it, maxNumber, prefix) }
 
     override fun listFolders(container: String): List<String> = meterRegistry.withMetrics("blob.listFolders") {
         TODO("Not yet implemented")
     }
 
     override fun listFolders(): List<String> =
-        azureConfig.blob.container.validateFor("blob.container") { listFolders(it) }
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) { listFolders(it) }
 
     override fun getFileContent(container: String, fileName: String): String =
         meterRegistry.withMetrics("blob.getFileContent") {
@@ -62,8 +70,12 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
             if (s.hasNext()) s.next() else ""
         }
 
+    override fun getFile(fileName: String): CloudFile = azureConfig.blob.container.validateFor(VAR_CONTAINER) {
+        getFile(it, fileName)
+    }
+
     override fun getFileContent(fileName: String): String =
-        azureConfig.blob.container.validateFor("blob.container") { getFileContent(it, fileName) }
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) { getFileContent(it, fileName) }
 
     override fun getFileContentAsInputStream(container: String, fileName: String): InputStream =
         meterRegistry.withMetrics("blob.getFileContentAsInputStream") {
@@ -71,7 +83,7 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
         }
 
     override fun getFileContentAsInputStream(fileName: String): InputStream =
-        azureConfig.blob.container.validateFor("blob.container") { getFileContentAsInputStream(it, fileName) }
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) { getFileContentAsInputStream(it, fileName) }
 
     override fun getMetadata(container: String, fileName: String, urlDecode: Boolean): Map<String, String> =
         meterRegistry.withMetrics("blob.getMetadata") {
@@ -89,7 +101,7 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
         }
 
     override fun getMetadata(fileName: String, urlDecode: Boolean): Map<String, String> =
-        azureConfig.blob.container.validateFor("blob.container") { getMetadata(it, fileName, urlDecode) }
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) { getMetadata(it, fileName, urlDecode) }
 
     override fun saveFile(
         container: String,
@@ -113,7 +125,7 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
     }
 
     override fun saveFile(fileName: String, content: String, metadata: Map<String, String>?, contentType: String) =
-        azureConfig.blob.container.validateFor("blob.container") {saveFile(it, fileName, content, metadata, contentType)}
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) {saveFile(it, fileName, content, metadata, contentType)}
 
 
     override fun saveFile(
@@ -122,14 +134,14 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
         size: Long,
         metadata: Map<String, String>?,
         contentType: String
-    ) = azureConfig.blob.container.validateFor("blob.container") {saveFile(it, fileName, content, size, metadata, contentType)}
+    ) = azureConfig.blob.container.validateFor(VAR_CONTAINER) {saveFile(it, fileName, content, size, metadata, contentType)}
 
     override fun deleteFile(container: String, fileName: String): Int = meterRegistry.withMetrics("blob.deleteFile") {
         TODO("Not yet implemented")
     }
 
     override fun deleteFile(fileName: String): Int =
-        azureConfig.blob.container.validateFor("blob.container") { deleteFile(it, fileName) }
+        azureConfig.blob.container.validateFor(VAR_CONTAINER) { deleteFile(it, fileName) }
 
     fun getProperties(container: String, key: String): BlobProperties {
         val blobContainerClient = blobServiceClient.getBlobContainerClient(container)

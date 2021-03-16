@@ -1,6 +1,7 @@
 package gov.cdc.ncezid.cloud.messaging.aws
 
 import gov.cdc.ncezid.cloud.AWSConfig
+import gov.cdc.ncezid.cloud.Providers
 import gov.cdc.ncezid.cloud.messaging.CloudMessage
 import gov.cdc.ncezid.cloud.messaging.CloudMessaging
 import gov.cdc.ncezid.cloud.util.stopTimer
@@ -22,6 +23,8 @@ import javax.inject.Singleton
 class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: MeterRegistry? = null) : CloudMessaging {
 
     private val logger = LoggerFactory.getLogger(SQSProxy::class.java.name)
+
+    override fun provider(): Providers = Providers.AWS
 
     private val sqsClient = SqsClient.builder().overrideConfiguration { cb ->
         cb.apiCallTimeout(Duration.ofSeconds(awsConfig.sqs.apiCallTimeoutSeconds))

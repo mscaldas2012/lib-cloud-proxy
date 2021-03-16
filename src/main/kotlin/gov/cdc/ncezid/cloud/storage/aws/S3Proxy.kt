@@ -1,6 +1,8 @@
 package gov.cdc.ncezid.cloud.storage.aws
 
 import gov.cdc.ncezid.cloud.AWSConfig
+import gov.cdc.ncezid.cloud.Providers
+import gov.cdc.ncezid.cloud.storage.CloudFile
 import gov.cdc.ncezid.cloud.storage.CloudStorage
 import gov.cdc.ncezid.cloud.util.decode
 import gov.cdc.ncezid.cloud.util.validateFor
@@ -21,8 +23,6 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
-import java.net.URLDecoder
-import java.nio.charset.Charset
 import java.time.Duration
 import java.util.*
 import java.util.zip.ZipEntry
@@ -30,6 +30,7 @@ import java.util.zip.ZipFile
 import javax.inject.Singleton
 
 private const val FILE_5MB = (5 * 1024 * 1024).toLong()
+private const val VAR_BUCKET = "s3.bucket"
 
 @Singleton
 @Requires(property = "aws.s3")
@@ -40,11 +41,18 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         logger.info("AUDIT- Initializing AWS S3Proxy with config: {}", awsConfig)
     }
 
+    override fun provider(): Providers = Providers.AWS
+
     private val s3Client = S3Client.builder().overrideConfiguration {
         it.apiCallTimeout(Duration.ofSeconds(awsConfig.s3.apiCallTimeoutSeconds))
             .apiCallAttemptTimeout(Duration.ofSeconds(awsConfig.s3.apiCallAttemptTimeoutSeconds))
     }.region(Region.of(awsConfig.region)).build()
 
+    override fun getFile(fileName: String): CloudFile = awsConfig.s3.bucket.validateFor(VAR_BUCKET) {
+        getFile(it, fileName)
+    }
+
+    override fun getDefaultBucket(): String = awsConfig.s3.bucket ?: "N/A"
 
     @Throws
     override fun getFileContent(bucket: String, fileName: String): String =
@@ -68,7 +76,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
 
     // TODO - should throw exception if bucket doesn't exist (and same for others)
     override fun getFileContent(fileName: String): String =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { getFileContent(it, fileName) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { getFileContent(it, fileName) }
 
     override fun getFileContentAsInputStream(bucket: String, fileName: String): InputStream =
         meterRegistry.withMetrics("s3.getFileContentAsInputStream") {
@@ -87,7 +95,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         }
 
     override fun getFileContentAsInputStream(fileName: String): InputStream =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { getFileContentAsInputStream(it, fileName) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { getFileContentAsInputStream(it, fileName) }
 
     @Throws
     override fun getMetadata(bucket: String, fileName: String, urlDecode: Boolean): Map<String, String> =
@@ -109,7 +117,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
 
 
     override fun getMetadata(fileName: String, urlDecode: Boolean): Map<String, String> =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { getMetadata(it, fileName, urlDecode) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { getMetadata(it, fileName, urlDecode) }
 
     override fun saveFile(
         bucket: String,
@@ -158,7 +166,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
     }
 
     override fun saveFile(fileName: String, content: String, metadata: Map<String, String>?, contentType: String) =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { saveFile(it, fileName, content, metadata, contentType) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { saveFile(it, fileName, content, metadata, contentType) }
 
 
     override fun saveFile(
@@ -168,7 +176,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         metadata: Map<String, String>?,
         contentType: String
     ): Unit =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { saveFile(it, fileName, content, size, metadata, contentType) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { saveFile(it, fileName, content, size, metadata, contentType) }
 
     //Retrieves the first X number of files on a folder (if prefix is provided) or root if prefix is null:
     override fun list(bucket: String, maxNumber: Int, prefix: String?): List<String> =
@@ -189,13 +197,13 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
      * This was introduced to be able to provide a 'silent' call to the aws s3 api
      */
     override fun healthCheck(): String = meterRegistry.withMetrics("s3.healthcheck") {
-        awsConfig.s3.bucket.validateFor("s3.bucket") {
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) {
             s3Client.listObjects { req -> req.bucket(it).maxKeys(1) }.responseMetadata().requestId()
         }
     }
 
     override fun list(maxNumber: Int, prefix: String?): List<String> =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { list(it, maxNumber, prefix) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { list(it, maxNumber, prefix) }
 
     override fun listFolders(bucket: String): List<String> = meterRegistry.withMetrics("s3.listFolders") {
         runCatching {
@@ -210,7 +218,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         }.getOrThrow()
     }
 
-    override fun listFolders(): List<String> = awsConfig.s3.bucket.validateFor("s3.bucket") { listFolders(it) }
+    override fun listFolders(): List<String> = awsConfig.s3.bucket.validateFor(VAR_BUCKET) { listFolders(it) }
 
     override fun deleteFile(bucket: String, fileName: String): Int =
         meterRegistry.withMetrics("s3.deleteFile") {
@@ -226,7 +234,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         }
 
     override fun deleteFile(fileName: String): Int =
-        awsConfig.s3.bucket.validateFor("s3.bucket") { deleteFile(it, fileName) }
+        awsConfig.s3.bucket.validateFor(VAR_BUCKET) { deleteFile(it, fileName) }
 
     private fun uploadSinglePart(
         bucket: String,

@@ -1,6 +1,8 @@
 package gov.cdc.ncezid.cloud.messaging
 
-interface CloudMessaging {
+import gov.cdc.ncezid.cloud.ProviderMeta
+
+interface CloudMessaging : ProviderMeta {
     fun listQueues(vararg prefixes: String): List<String>
     fun getQueueUrl(queueName: String): String
     fun getQueueUrl(): String
