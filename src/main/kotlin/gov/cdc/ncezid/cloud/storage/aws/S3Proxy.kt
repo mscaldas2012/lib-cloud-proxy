@@ -4,6 +4,9 @@ import gov.cdc.ncezid.cloud.AWSConfig
 import gov.cdc.ncezid.cloud.Providers
 import gov.cdc.ncezid.cloud.storage.CloudFile
 import gov.cdc.ncezid.cloud.storage.CloudStorage
+import gov.cdc.ncezid.cloud.storage.META_CONTENT_ENCODING
+import gov.cdc.ncezid.cloud.storage.META_CONTENT_LENGTH
+import gov.cdc.ncezid.cloud.storage.META_CONTENT_TYPE
 import gov.cdc.ncezid.cloud.util.decode
 import gov.cdc.ncezid.cloud.util.validateFor
 import gov.cdc.ncezid.cloud.util.withMetrics
@@ -104,9 +107,11 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
 
             runCatching {
                 s3Client.headObject { it.bucket(bucket).key(fileName) }.let {
-                    mapOf("last_modified" to it.lastModified().toString()).plus(
-                        if (urlDecode) it.metadata().decode() else it.metadata()
-                    )
+                    mapOf("last_modified" to it.lastModified().toString())
+                        .plus(if (urlDecode) it.metadata().decode() else it.metadata())
+                        .plus(META_CONTENT_LENGTH to it.contentLength().toString())
+                        .plus(META_CONTENT_TYPE to it.contentType())
+                        .plus(META_CONTENT_ENCODING to it.contentEncoding())
                 }
             }.onFailure {
                 logger.error(
