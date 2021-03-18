@@ -52,10 +52,12 @@ dependencies {
     implementation("io.micronaut:micronaut-management")
     implementation("io.micronaut.micrometer:micronaut-micrometer-core")
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
+    implementation platform("org.jetbrains.kotlin:kotlin-bom")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     implementation("javax.annotation:javax.annotation-api")
+    implementation("com.jayway.jsonpath:json-path:2.5.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.2.3")
     runtimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
 

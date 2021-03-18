@@ -85,7 +85,7 @@ class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: Mete
                             .maxNumberOfMessages(awsConfig.sqs.maxNumberOfMessages)
                             .waitTimeSeconds(awsConfig.sqs.waitTimeSeconds)
                     }.messages().map {
-                        CloudMessage(it.messageId(), it.receiptHandle(), it.body(), url)
+                        SQSMessage(it.messageId(), it.receiptHandle(), it.body(), url)
                     }.also {
                         // This forces a 'timed' execution for only polls that actually receive messages
                         if (it.isNotEmpty())
