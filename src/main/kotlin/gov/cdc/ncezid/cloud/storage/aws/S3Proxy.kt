@@ -113,6 +113,8 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                         .plus(META_CONTENT_TYPE to it.contentType())
                         .plus(META_CONTENT_ENCODING to it.contentEncoding())
                 }
+            }.onSuccess {
+                logger.debug("S3 File Metadata: {}", it)
             }.onFailure {
                 logger.error(
                     "Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it

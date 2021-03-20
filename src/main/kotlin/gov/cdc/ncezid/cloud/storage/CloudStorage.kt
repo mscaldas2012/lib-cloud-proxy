@@ -7,9 +7,9 @@ import java.io.InputStream
 // TODO - consider splitting interface, one with default bucket and one without
 
 
-const val META_CONTENT_LENGTH = "content-length"
-const val META_CONTENT_TYPE = "content-type"
-const val META_CONTENT_ENCODING = "content-encoding"
+const val META_CONTENT_LENGTH = "content_length"
+const val META_CONTENT_TYPE = "content_type"
+const val META_CONTENT_ENCODING = "content_encoding"
 
 /**
  *
