@@ -1,11 +1,21 @@
 package gov.cdc.ncezid.cloud.storage
 
+import java.util.regex.Pattern
+
 data class CloudFile(
     val bucket: String,
     val fileName: String,
     val metadata: Map<String, String>,
     val content: String
 ) {
+
+    /**
+     * Simple row count based on line termination characters. Executed lazily.
+     */
+    val rowCount: Long by lazy {
+        Pattern.compile("(\n)|(\r)").matcher(content).results().count()
+    }
+
     override fun toString(): String {
         return """
             |CloudFile(
