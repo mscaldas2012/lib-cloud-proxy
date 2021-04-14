@@ -34,9 +34,9 @@ interface CloudStorage : ProviderMeta {
     fun getDefaultBucket(): String
 
     fun saveFile(bucket: String, fileName: String, content:String, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
-    fun saveFile(bucket: String, fileName: String, content:InputStream, size: Long, metadata: Map<String, String>?, contentType: String = MediaType.TEXT_PLAIN)
+    fun saveFile(bucket: String, fileName: String, content:InputStream, size: Long, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
     fun saveFile(fileName: String, content:String, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
-    fun saveFile(fileName: String, content:InputStream, size: Long, metadata: Map<String, String>?, contentType: String = MediaType.TEXT_PLAIN)
+    fun saveFile(fileName: String, content:InputStream, size: Long, metadata: Map<String, String>? = null, contentType: String = MediaType.TEXT_PLAIN)
     fun deleteFile(bucket:String, fileName: String): Int
     fun deleteFile(fileName: String): Int
 

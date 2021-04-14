@@ -72,7 +72,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                     "Failed to get fileContent for fileName: {} in bucket: {}. Exception: {}",
                     fileName,
                     bucket,
-                    it
+                    it.toString()
                 )
             }.getOrThrow()
         }
@@ -92,7 +92,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                     "Failed to get fileContent (as InputStream) for fileName: {} in bucket: {}. Exception: {}",
                     fileName,
                     bucket,
-                    it
+                    it.toString()
                 )
             }.getOrThrow()
         }
@@ -117,7 +117,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                 logger.debug("S3 File Metadata: {}", it)
             }.onFailure {
                 logger.error(
-                    "Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it
+                    "Failed to get MetaData for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it.toString()
                 )
             }.getOrThrow()
         }
@@ -148,7 +148,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                 logger.info("\tfile stored to S3 response: $it")
             }
         }.onFailure {
-            logger.error("Failed to Save File for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+            logger.error("Failed to Save File for fileName: {} in bucket: {}. Exception: {}", fileName, bucket, it.toString())
         }.getOrThrow()
     }
 
@@ -167,7 +167,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         }.onFailure {
             logger.error(
                 "Failed to Save File (from InputStream) for fileName: {} in bucket: {}. Exception: {}",
-                fileName, bucket, it
+                fileName, bucket, it.toString()
             )
         }.getOrThrow()
     }
@@ -196,7 +196,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                     res.contents().map { it.key() }
                 }
             }.onFailure {
-                logger.error("Failed to List objects for bucket: {} with prefix {}. Exception: {}", bucket, prefix, it)
+                logger.error("Failed to List objects for bucket: {} with prefix {}. Exception: {}", bucket, prefix, it.toString())
             }.getOrThrow()
         }
 
@@ -216,12 +216,10 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
         runCatching {
             with(list(bucket, 100)) {
                 logger.debug("List: {}", this)
-                mapNotNull { it.takeIf { it.indexOf("/") >= 0 } }
-                    .filter { it != "" }
-                    .distinctBy { it }
+                map { it.split("/").first() }.distinctBy { it }
             }
         }.onFailure {
-            logger.error("Failed to List Folders for bucket: {}. Exception: {}", bucket, it)
+            logger.error("Failed to List Folders for bucket: {}. Exception: {}", bucket, it.toString())
         }.getOrThrow()
     }
 
@@ -236,7 +234,7 @@ class S3Proxy(private val awsConfig: AWSConfig, private val meterRegistry: Meter
                     req.bucket(bucket).delete { it.objects(keyAsList) }
                 }.deleted().size
             }.onFailure {
-                logger.error("Failed to Delete file: {} in bucket: {}. Exception: {}", fileName, bucket, it)
+                logger.error("Failed to Delete file: {} in bucket: {}. Exception: {}", fileName, bucket, it.toString())
             }.getOrThrow()
         }
 

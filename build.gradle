@@ -10,8 +10,6 @@ plugins {
 version "$revision"
 group "gov.cdc.ncezid"
 
-apply plugin: 'maven'
-apply plugin: 'idea'
 
 repositories {
     maven {
