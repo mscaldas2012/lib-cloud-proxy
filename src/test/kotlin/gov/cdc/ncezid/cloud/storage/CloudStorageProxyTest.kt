@@ -20,11 +20,11 @@ internal class CloudStorageProxyTest {
     fun listFolders() {
 //        val configs = s3Proxy.listFolders("cf-daart-hl7-dropbucket-dev")
         val configs = s3Proxy.listFolders("cf-daart-nist-profiles-dev")
-        configs.forEach { println(it)}
+        configs.forEach { println("Folder: $it")}
         if (configs.isEmpty()) {
             println("NO FOLDERS FOUND ON THIS BUCKET!")
         }
         val configsProxy = cloudStorage.listFolders("cf-daart-nist-profiles-dev")
-        configsProxy.forEach { println(it)}
+        configsProxy.forEach { println("Folder cs: $it")}
     }
 }
