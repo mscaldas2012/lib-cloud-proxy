@@ -1,8 +1,0 @@
-gov.cdc.ncezid.cloud.storage.azure.$BlobProxyDefinitionClass
-gov.cdc.ncezid.cloud.storage.aws.$S3ProxyDefinitionClass
-gov.cdc.ncezid.cloud.messaging.aws.$SQSHealthDefinitionClass
-gov.cdc.ncezid.cloud.storage.aws.$S3HealthDefinitionClass
-gov.cdc.ncezid.cloud.$AWSConfigDefinitionClass
-gov.cdc.ncezid.cloud.$AzureConfigDefinitionClass
-gov.cdc.ncezid.cloud.messaging.aws.$SQSProxyDefinitionClass
-gov.cdc.ncezid.cloud.storage.azure.$BlobHealthDefinitionClass
