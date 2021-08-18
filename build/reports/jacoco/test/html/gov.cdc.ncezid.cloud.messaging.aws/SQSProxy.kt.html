@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SQSProxy.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lib-cloud-proxy</a> &gt; <a href="index.source.html" class="el_package">gov.cdc.ncezid.cloud.messaging.aws</a> &gt; <span class="el_source">SQSProxy.kt</span></div><h1>SQSProxy.kt</h1><pre class="source lang-java linenums">package gov.cdc.ncezid.cloud.messaging.aws
+
+import gov.cdc.ncezid.cloud.AWSConfig
+import gov.cdc.ncezid.cloud.Providers
+import gov.cdc.ncezid.cloud.messaging.CloudMessage
+import gov.cdc.ncezid.cloud.messaging.CloudMessaging
+import gov.cdc.ncezid.cloud.util.stopTimer
+import gov.cdc.ncezid.cloud.util.validateFor
+import gov.cdc.ncezid.cloud.util.withMetrics
+import gov.cdc.ncezid.cloud.util.withMetricsTimer
+import io.micrometer.core.instrument.MeterRegistry
+import io.micronaut.context.annotation.Requires
+import org.slf4j.LoggerFactory
+import software.amazon.awssdk.core.retry.RetryMode
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.sqs.SqsClient
+import java.time.Duration
+import javax.inject.Singleton
+
+
+@Singleton
+@Requires(property = &quot;aws.sqs&quot;)
+<span class="nc" id="L23">class SQSProxy(private val awsConfig: AWSConfig, private val meterRegistry: MeterRegistry? = null) : CloudMessaging {</span>
+
+<span class="nc" id="L25">    private val logger = LoggerFactory.getLogger(SQSProxy::class.java.name)</span>
+
+<span class="nc" id="L27">    override fun provider(): Providers = Providers.AWS</span>
+
+<span class="nc" id="L29">    private val sqsClient = SqsClient.builder().overrideConfiguration { cb -&gt;</span>
+<span class="nc" id="L30">        cb.apiCallTimeout(Duration.ofSeconds(awsConfig.sqs.apiCallTimeoutSeconds))</span>
+<span class="nc" id="L31">            .apiCallAttemptTimeout(Duration.ofSeconds(awsConfig.sqs.apiCallAttemptTimeoutSeconds))</span>
+<span class="nc" id="L32">            .retryPolicy(RetryMode.STANDARD)</span>
+<span class="nc" id="L33">    }.region(Region.of(awsConfig.region)).build()</span>
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    private val queueUrl: String? = awsConfig.sqs.queueName?.let(::getQueueUrl)</span>
+
+<span class="nc" id="L37">    init {</span>
+<span class="nc" id="L38">        logger.info(&quot;AUDIT- Initializing AWS SQSProxy with config: {}&quot;, awsConfig)</span>
+<span class="nc" id="L39">    }</span>
+
+    /**
+     * This was introduced to be able to provide a 'silent' call to the aws sqs api
+     */
+<span class="nc" id="L44">    override fun healthCheck(): String = meterRegistry.withMetrics(&quot;sqs.healthCheck&quot;) {</span>
+<span class="nc" id="L45">        sqsClient.getQueueUrl { it.queueName(awsConfig.sqs.queueName) }.responseMetadata().requestId()</span>
+<span class="nc" id="L46">    }</span>
+
+<span class="nc" id="L48">    override fun listQueues(vararg prefixes: String): List&lt;String&gt; = meterRegistry.withMetrics(&quot;sqs.listQueues&quot;) {</span>
+<span class="nc" id="L49">        logger.debug(&quot;Listing Queues matching prefixes: {}&quot;, prefixes)</span>
+<span class="nc" id="L50">        runCatching {</span>
+<span class="nc" id="L51">            when {</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">                prefixes.isEmpty() -&gt; sqsClient.listQueues().queueUrls()</span>
+<span class="nc" id="L53">                else -&gt; prefixes.flatMap { p -&gt; sqsClient.listQueues { it.queueNamePrefix(p) }.queueUrls() }</span>
+            }
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        }.onFailure {</span>
+<span class="nc" id="L56">            logger.error(&quot;Failed to list Queues matching prefixes: {}. Exception: {}&quot;, prefixes.joinToString(), it)</span>
+<span class="nc" id="L57">        }.getOrThrow()</span>
+<span class="nc" id="L58">    }</span>
+
+<span class="nc" id="L60">    override fun getQueueUrl(): String = awsConfig.sqs.queueName.validateFor(&quot;queueName&quot;) { getQueueUrl(it) }</span>
+
+<span class="nc" id="L62">    override fun getQueueUrl(queueName: String): String = meterRegistry.withMetrics(&quot;sqs.getQueueUrl&quot;) {</span>
+<span class="nc" id="L63">        runCatching {</span>
+<span class="nc" id="L64">            sqsClient.also {</span>
+<span class="nc" id="L65">                logger.debug(&quot;Getting QueueUrl for queueName: {}&quot;, queueName)</span>
+<span class="nc" id="L66">            }.getQueueUrl { it.queueName(queueName) }.queueUrl()</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        }.onFailure {</span>
+<span class="nc" id="L68">            logger.error(&quot;Failed to get Queue Url for Queue Name: {}. Exception: {}&quot;, queueName, it)</span>
+<span class="nc" id="L69">        }.getOrThrow()</span>
+<span class="nc" id="L70">    }</span>
+
+
+<span class="nc" id="L73">    override fun receiveMessage(): List&lt;CloudMessage&gt; = queueUrl.validateFor(&quot;queueUrl&quot;) { receiveMessage(it) }</span>
+
+    override fun receiveMessage(queueNameOrUrl: String): List&lt;CloudMessage&gt; =
+<span class="nc" id="L76">        meterRegistry.withMetricsTimer(&quot;sqs.receiveMessage.poll&quot;) { timer -&gt;</span>
+<span class="nc" id="L77">            kotlin.runCatching {</span>
+<span class="nc" id="L78">                when {</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                    queueNameOrUrl.startsWith(&quot;https://sqs&quot;) -&gt; queueNameOrUrl</span>
+<span class="nc" id="L80">                    else -&gt; getQueueUrl(queueNameOrUrl)</span>
+<span class="nc" id="L81">                }.let { url -&gt;</span>
+<span class="nc" id="L82">                    logger.trace(&quot;Receiving messages on queue: {}&quot;, queueNameOrUrl)</span>
+<span class="nc" id="L83">                    sqsClient.receiveMessage {</span>
+<span class="nc" id="L84">                        it.queueUrl(url)</span>
+<span class="nc" id="L85">                            .maxNumberOfMessages(awsConfig.sqs.maxNumberOfMessages)</span>
+<span class="nc" id="L86">                            .waitTimeSeconds(awsConfig.sqs.waitTimeSeconds)</span>
+<span class="nc" id="L87">                    }.messages().map {</span>
+<span class="nc" id="L88">                        SQSMessage(it.messageId(), it.receiptHandle(), it.body(), url)</span>
+<span class="nc" id="L89">                    }.also {</span>
+                        // This forces a 'timed' execution for only polls that actually receive messages
+<span class="nc bnc" id="L91" title="All 4 branches missed.">                        if (it.isNotEmpty())</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                            meterRegistry?.stopTimer(timer, &quot;sqs.receiveMessage&quot;)</span>
+<span class="nc" id="L93">                    }</span>
+                }
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            }.onFailure {</span>
+<span class="nc" id="L96">                logger.error(&quot;Failed to receive message on queueUrl: {}. Exception: {}&quot;, queueNameOrUrl, it)</span>
+<span class="nc" id="L97">            }.getOrThrow()</span>
+<span class="nc" id="L98">        }</span>
+
+<span class="nc" id="L100">    override fun deleteMessage(message: CloudMessage): String = meterRegistry.withMetrics(&quot;sqs.deleteMessage&quot;) {</span>
+<span class="nc" id="L101">        kotlin.runCatching {</span>
+<span class="nc" id="L102">            sqsClient.also { logger.debug(&quot;Deleting message: {}&quot;, message) }</span>
+<span class="nc" id="L103">                .deleteMessage { it.queueUrl(message.queue).receiptHandle(message.recipientHandle) }</span>
+<span class="nc" id="L104">                .responseMetadata().requestId()</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        }.onFailure {</span>
+<span class="nc" id="L106">            logger.error(&quot;Failed to delete message: {}. Exception: {}&quot;, message, it)</span>
+<span class="nc" id="L107">        }.getOrThrow()</span>
+<span class="nc" id="L108">    }</span>
+
+    override fun timeoutMessage(message: CloudMessage, timeout: Int): String =
+<span class="nc" id="L111">        meterRegistry.withMetrics(&quot;sqs.timeoutMessage&quot;) {</span>
+<span class="nc" id="L112">            runCatching {</span>
+<span class="nc" id="L113">                sqsClient.also {</span>
+<span class="nc" id="L114">                    logger.debug(&quot;Updating message: {} with timeout: {}&quot;, message, timeout)</span>
+<span class="nc" id="L115">                }.changeMessageVisibility {</span>
+<span class="nc" id="L116">                    it.queueUrl(message.queue)</span>
+<span class="nc" id="L117">                        .receiptHandle(message.recipientHandle)</span>
+<span class="nc" id="L118">                        .visibilityTimeout(timeout)</span>
+<span class="nc" id="L119">                }.responseMetadata().requestId()</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            }.onFailure {</span>
+<span class="nc" id="L121">                logger.error(</span>
+<span class="nc" id="L122">                    &quot;Failed to set message visibility timeout [{}] for message: {}. Exception: {}&quot;,</span>
+<span class="nc" id="L123">                    timeout, message, it</span>
+                )
+<span class="nc" id="L125">            }.getOrThrow()</span>
+<span class="nc" id="L126">        }</span>
+
+    override fun toString(): String {
+<span class="nc" id="L129">        return &quot;SQSProxy(sqsClient=$sqsClient)&quot;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AWSConfig.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lib-cloud-proxy</a> &gt; <a href="index.source.html" class="el_package">gov.cdc.ncezid.cloud</a> &gt; <span class="el_source">AWSConfig.kt</span></div><h1>AWSConfig.kt</h1><pre class="source lang-java linenums">package gov.cdc.ncezid.cloud
+
+import io.micronaut.context.annotation.ConfigurationBuilder
+import io.micronaut.context.annotation.ConfigurationProperties
+
+@ConfigurationProperties(&quot;aws&quot;)
+<span class="fc" id="L7">class AWSConfig {</span>
+<span class="fc" id="L8">    var region: String = &quot;us-east-1&quot;</span>
+
+    @ConfigurationBuilder(configurationPrefix = &quot;s3&quot;)
+<span class="fc" id="L11">    val s3: S3Config = S3Config()</span>
+
+    @ConfigurationBuilder(configurationPrefix = &quot;s3.health&quot;)
+<span class="pc" id="L14">    var s3Health: HealthConfig = HealthConfig()</span>
+
+    @ConfigurationBuilder(configurationPrefix = &quot;sqs&quot;)
+<span class="pc" id="L17">    val sqs: SQSConfig = SQSConfig()</span>
+
+    @ConfigurationBuilder(configurationPrefix = &quot;sqs.health&quot;)
+<span class="pc" id="L20">    var sqsHealth: HealthConfig = HealthConfig()</span>
+
+<span class="fc" id="L22">    inner class S3Config {</span>
+<span class="pc" id="L23">        var bucket: String? = null</span>
+<span class="pc" id="L24">        var apiCallTimeoutSeconds: Long = 60</span>
+<span class="pc" id="L25">        var apiCallAttemptTimeoutSeconds: Long = 20</span>
+
+        override fun toString(): String {
+<span class="fc" id="L28">            return &quot;bucket='$bucket', &quot; +</span>
+<span class="fc" id="L29">                    &quot;apiCallTimeoutSeconds='$apiCallTimeoutSeconds', &quot; +</span>
+<span class="fc" id="L30">                    &quot;apiCallAttemptTimeoutSeconds='$apiCallAttemptTimeoutSeconds', &quot; +</span>
+<span class="fc" id="L31">                    &quot;health=${s3Health.enabled}&quot;</span>
+        }
+    }
+
+<span class="fc" id="L35">    inner class SQSConfig {</span>
+<span class="nc" id="L36">        var queueName: String? = null</span>
+<span class="pc" id="L37">        var apiCallTimeoutSeconds: Long = 60</span>
+<span class="pc" id="L38">        var apiCallAttemptTimeoutSeconds: Long = 20</span>
+<span class="pc" id="L39">        var maxNumberOfMessages: Int = 1</span>
+<span class="pc" id="L40">        var waitTimeSeconds: Int = 5</span>
+
+        override fun toString(): String {
+<span class="fc" id="L43">            return &quot;queueName='$queueName', &quot; +</span>
+<span class="fc" id="L44">                    &quot;apiCallTimeoutSeconds='$apiCallTimeoutSeconds', &quot; +</span>
+<span class="fc" id="L45">                    &quot;apiCallAttemptTimeoutSeconds='$apiCallAttemptTimeoutSeconds', &quot; +</span>
+<span class="fc" id="L46">                    &quot;maxNumberOfMessages='$maxNumberOfMessages', &quot; +</span>
+<span class="fc" id="L47">                    &quot;waitTimeSeconds='$waitTimeSeconds', &quot; +</span>
+<span class="fc" id="L48">                    &quot;health=${sqsHealth.enabled}&quot;</span>
+        }
+    }
+
+<span class="fc" id="L52">    inner class HealthConfig {</span>
+<span class="pc" id="L53">        var enabled: Boolean = false</span>
+    }
+
+    override fun toString(): String {
+<span class="fc" id="L57">        return &quot;&quot;&quot;</span>
+            |AWSConfig(
+<span class="fc" id="L59">            |  region='$region', </span>
+<span class="fc" id="L60">            |  s3=[$s3], </span>
+<span class="fc" id="L61">            |  sqs=[$sqs]</span>
+<span class="fc" id="L62">            |)&quot;&quot;&quot;.trimMargin()</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

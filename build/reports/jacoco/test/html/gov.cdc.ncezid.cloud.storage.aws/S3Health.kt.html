@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>S3Health.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lib-cloud-proxy</a> &gt; <a href="index.source.html" class="el_package">gov.cdc.ncezid.cloud.storage.aws</a> &gt; <span class="el_source">S3Health.kt</span></div><h1>S3Health.kt</h1><pre class="source lang-java linenums">package gov.cdc.ncezid.cloud.storage.aws
+
+import gov.cdc.ncezid.cloud.AWSConfig
+import gov.cdc.ncezid.cloud.util.withDetails
+import io.micronaut.context.annotation.Requires
+import io.micronaut.health.HealthStatus
+import io.micronaut.management.health.indicator.HealthIndicator
+import io.micronaut.management.health.indicator.HealthResult
+import org.reactivestreams.Publisher
+import org.slf4j.LoggerFactory
+import javax.inject.Singleton
+
+@Singleton
+@Requires(property = &quot;aws.s3.health.enabled&quot;, value = &quot;true&quot;, defaultValue = &quot;false&quot;)
+<span class="nc" id="L15">class S3Health(</span>
+    private val s3Proxy: S3Proxy,
+    private val awsConfig: AWSConfig
+) : HealthIndicator {
+
+<span class="nc" id="L20">    private val logger = LoggerFactory.getLogger(S3Health::class.java)</span>
+
+<span class="nc" id="L22">    init {</span>
+<span class="nc" id="L23">        logger.info(&quot;Initializing S3Health for bucket: {}&quot;, awsConfig.s3.bucket)</span>
+<span class="nc" id="L24">    }</span>
+
+<span class="nc" id="L26">    override fun getResult(): Publisher&lt;HealthResult&gt; = withDetails(&quot;s3&quot;) {</span>
+<span class="nc" id="L27">        s3Proxy.healthCheck().let {</span>
+<span class="nc" id="L28">            logger.trace(&quot;Successfully validated reachability for bucket: {}. ResponseCode: {}&quot;, awsConfig.s3.bucket, it)</span>
+<span class="nc" id="L29">            HealthStatus.UP to mapOf(</span>
+<span class="nc" id="L30">                &quot;bucket&quot; to awsConfig.s3.bucket,</span>
+<span class="nc" id="L31">                &quot;requestId&quot; to it,</span>
+<span class="nc" id="L32">                &quot;message&quot; to &quot;UP&quot;</span>
+            )
+        }
+<span class="nc" id="L35">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

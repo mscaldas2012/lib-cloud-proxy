@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SQSHealth.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lib-cloud-proxy</a> &gt; <a href="index.source.html" class="el_package">gov.cdc.ncezid.cloud.messaging.aws</a> &gt; <span class="el_source">SQSHealth.kt</span></div><h1>SQSHealth.kt</h1><pre class="source lang-java linenums">package gov.cdc.ncezid.cloud.messaging.aws
+
+import gov.cdc.ncezid.cloud.AWSConfig
+import gov.cdc.ncezid.cloud.util.withDetails
+import io.micronaut.context.annotation.Requires
+import io.micronaut.context.annotation.Value
+import io.micronaut.health.HealthStatus
+import io.micronaut.management.health.indicator.HealthIndicator
+import io.micronaut.management.health.indicator.HealthResult
+import org.reactivestreams.Publisher
+import org.slf4j.LoggerFactory
+import javax.inject.Singleton
+
+@Singleton
+@Requires(property = &quot;aws.sqs.health.enabled&quot;, value = &quot;true&quot;, defaultValue = &quot;false&quot;)
+<span class="nc" id="L16">class SQSHealth(private val sqsProxy: SQSProxy) : HealthIndicator {</span>
+
+<span class="nc" id="L18">    private val logger = LoggerFactory.getLogger(SQSHealth::class.java)</span>
+<span class="nc" id="L19">    private val queueUrl: String = sqsProxy.getQueueUrl()</span>
+
+<span class="nc" id="L21">    init {</span>
+<span class="nc" id="L22">        logger.info(&quot;Initializing SQSHealth for queueUrl: {}&quot;, queueUrl)</span>
+<span class="nc" id="L23">    }</span>
+
+<span class="nc" id="L25">    override fun getResult(): Publisher&lt;HealthResult&gt; = withDetails(&quot;sqs&quot;) {</span>
+<span class="nc" id="L26">        sqsProxy.healthCheck().let {</span>
+<span class="nc" id="L27">            logger.trace(&quot;Successfully retrieved queue: $it&quot;)</span>
+<span class="nc" id="L28">            HealthStatus.UP to mapOf(</span>
+<span class="nc" id="L29">                &quot;url&quot; to queueUrl,</span>
+<span class="nc" id="L30">                &quot;requestId&quot; to it,</span>
+<span class="nc" id="L31">                &quot;message&quot; to &quot;UP&quot;</span>
+            )
+        }
+<span class="nc" id="L34">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>
