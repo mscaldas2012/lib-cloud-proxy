@@ -1,5 +1,3 @@
-image: glenndphillips/alpine-java11-k8s:latest
-
 stages:
   - build
   - test
