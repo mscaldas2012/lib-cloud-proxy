@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.inject.Singleton
 
+
 private const val VAR_CONTAINER = "blob.container"
 
 @Singleton
@@ -35,6 +36,7 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
     private val blobServiceClient: BlobServiceClient = azureConfig.blob.connectStr.validateFor("blob.connectStr") {
         BlobServiceClientBuilder().connectionString(it).buildClient()
     }
+    private val containerClient = blobServiceClient.getBlobContainerClient(azureConfig.blob.container)
 
     /**
      * This was introduced to be able to provide a 'silent' call to the aws s3 api
@@ -47,14 +49,21 @@ class BlobProxy(private val azureConfig: AzureConfig, private val meterRegistry:
 
     override fun list(container: String, maxNumber: Int, prefix: String?): List<String> =
         meterRegistry.withMetrics("blob.list") {
-            TODO("Not yet implemented")
+            containerClient.listBlobs().map{b -> b.getName()}
         }
 
     override fun list(maxNumber: Int, prefix: String?): List<String> =
         azureConfig.blob.container.validateFor(VAR_CONTAINER) { list(it, maxNumber, prefix) }
 
     override fun listFolders(container: String): List<String> = meterRegistry.withMetrics("blob.listFolders") {
-        TODO("Not yet implemented")
+        runCatching {
+            with(list(container, 100)) {
+                logger.debug("List: {}", this)
+                map { it.split("/").first() }.distinctBy { it }
+            }
+        }.onFailure {
+            logger.error("Failed to List Folders for container: {}. Exception: {}", container, it.toString())
+        }.getOrThrow()
     }
 
     override fun listFolders(): List<String> =

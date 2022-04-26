@@ -2,8 +2,12 @@ micronaut:
   application:
     name: lib-cloud-proxy
 
-aws:
-  region: us-east-1
-  s3:
-    bucket: test
+#aws:
+#  region: us-east-1
+#  s3:
+#    bucket: cf-daart-nist-profiles-dev
 
+azure:
+  blob:
+    connectStr: DefaultEndpointsProtocol=https;AccountName=stezdxdev;AccountKey=qGJWZ44bCmCjkCDOHrYKROyJkxXV7+BcywLkjmiLtlUMvOGvQUE/3gpMkVO5anaBG482qslgeDCAegxbFBlBeA==;EndpointSuffix=core.windows.net
+    container: foodnet
