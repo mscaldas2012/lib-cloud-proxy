@@ -1,7 +1,7 @@
 micronaut:
   application:
     name: lib-cloud-proxy
-
+#
 #aws:
 #  region: us-east-1
 #  s3:

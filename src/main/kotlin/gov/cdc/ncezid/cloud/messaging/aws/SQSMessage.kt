@@ -5,7 +5,7 @@ import gov.cdc.ncezid.cloud.messaging.CloudMessage
 
 private const val SQS_KEY_PATH = "$['Records'][0]['s3']['object']['key']"
 
-class SQSMessage(
+class SQSMessage (
     id: String,
     recipientHandle: String,
     body: String,

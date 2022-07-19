@@ -1,9 +1,7 @@
 package gov.cdc.ncezid.cloud.messaging.aws
 
-import gov.cdc.ncezid.cloud.AWSConfig
 import gov.cdc.ncezid.cloud.util.withDetails
 import io.micronaut.context.annotation.Requires
-import io.micronaut.context.annotation.Value
 import io.micronaut.health.HealthStatus
 import io.micronaut.management.health.indicator.HealthIndicator
 import io.micronaut.management.health.indicator.HealthResult
