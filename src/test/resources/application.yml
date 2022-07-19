@@ -1,7 +1,7 @@
 micronaut:
   application:
     name: lib-cloud-proxy
-#
+
 #aws:
 #  region: us-east-1
 #  s3:
@@ -11,3 +11,7 @@ azure:
   blob:
     connectStr: DefaultEndpointsProtocol=https;AccountName=stezdxdev;AccountKey=qGJWZ44bCmCjkCDOHrYKROyJkxXV7+BcywLkjmiLtlUMvOGvQUE/3gpMkVO5anaBG482qslgeDCAegxbFBlBeA==;EndpointSuffix=core.windows.net
     container: foodnet
+
+  asq:
+    connectionStr: "DefaultEndpointsProtocol=https;AccountName=spike411;AccountKey=0KjWD5kpBIn63VccxjcWDZUskLjqKUjWVjdWS/cn5ZuRWhzxk/C1s7pw7TDhGcxx/uMPx9cWL0T8+ASt2NRSuQ==;EndpointSuffix=core.windows.net"
+    queueName: q-spike"

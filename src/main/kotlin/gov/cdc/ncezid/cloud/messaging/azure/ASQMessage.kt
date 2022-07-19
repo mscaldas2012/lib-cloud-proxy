@@ -1,5 +1,6 @@
 package gov.cdc.ncezid.cloud.messaging.azure
 
+import com.jayway.jsonpath.JsonPath
 import gov.cdc.ncezid.cloud.messaging.CloudMessage
 
 class ASQMessage (
@@ -9,7 +10,9 @@ class ASQMessage (
     queue: String
 ) : CloudMessage(id, recipientHandle, body, queue) {
 
+    private val ASQ_KEY_PATH:String = "data.url"
+
     override fun key(): String {
-        TODO("Not yet implemented")
+        return JsonPath.parse(this.body).read(ASQ_KEY_PATH, String::class.java)
     }
 }
