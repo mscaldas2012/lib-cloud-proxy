@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+
 import kotlin.system.measureTimeMillis
 
 @MicronautTest

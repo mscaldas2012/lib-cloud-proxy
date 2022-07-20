@@ -28,16 +28,17 @@ configurations {
 }
 
 dependencies {
+    implementation group: 'com.azure', name: 'azure-sdk-bom', version: '1.2.3', ext: 'pom'
     implementation platform("software.amazon.awssdk:bom:$awsSDKVersion")
-//    implementation platform("com.azure:azure-skd-bom:$azureSDKVersion")
+
+//    implementation group: 'io.micronaut.azure', name: 'micronaut-azure-sdk', version: '3.3.0'
+    implementation 'com.azure:azure-storage-blob:12.18.0'
+    implementation 'com.azure:azure-storage-queue:12.14.0'
 
     implementation("io.micronaut.aws:micronaut-aws-sdk-v2")
     implementation "software.amazon.awssdk:s3"
     implementation "software.amazon.awssdk:sqs"
     implementation "software.amazon.awssdk:sts"
-
-    implementation 'com.azure:azure-storage-blob:12.18.0'
-    implementation 'com.azure:azure-storage-queue:12.14.0'
 
     kapt(platform("io.micronaut:micronaut-bom:$micronautVersion"))
     kapt("io.micronaut:micronaut-inject-java")
@@ -75,8 +76,13 @@ dependencies {
     testImplementation("io.micronaut.test:micronaut-test-junit5:{junitVersion}")
 //    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:{junitVersion}")
 //    testRuntimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.53.Final'
-    testRuntimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.53.Final:' + osdetector.classifier
-    testRuntimeOnly 'io.grpc:grpc-netty-shaded:1.45.0'
+    runtimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.53.Final:' + osdetector.classifier
+    runtimeOnly 'io.grpc:grpc-netty-shaded:1.45.0'
+//    implementation 'io.projectreactor:reactor-core:3.4.19'
+    implementation 'javax.inject:javax.inject:1'
+// https://mvnrepository.com/artifact/io.reactivex.rxjava2/rxjava
+    implementation group: 'io.reactivex.rxjava2', name: 'rxjava', version: '2.2.21'
+
 }
 
 test.classpath += configurations.developmentOnly
@@ -127,6 +133,9 @@ compileTestKotlin {
 //        arg("micronaut.processing.module", "libCloudProxy")
 //    }
 //}
+kapt {
+    correctErrorTypes true
+}
 
 //shadowJar {
 //    mergeServiceFiles()

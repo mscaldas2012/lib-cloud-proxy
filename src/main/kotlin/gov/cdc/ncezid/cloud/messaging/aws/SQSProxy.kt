@@ -10,6 +10,7 @@ import gov.cdc.ncezid.cloud.util.withMetrics
 import gov.cdc.ncezid.cloud.util.withMetricsTimer
 import io.micrometer.core.instrument.MeterRegistry
 import io.micronaut.context.annotation.Requires
+
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.core.retry.RetryMode
 import software.amazon.awssdk.regions.Region
